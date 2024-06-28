@@ -1,0 +1,251 @@
+---------------------------------------FUNCTION---------------------------------------
+--1.Lấy danh sách bệnh nhân theo tình trạng
+CREATE OR REPLACE FUNCTION get_benhnhan_by_status(p_tinhtrang VARCHAR(50))
+RETURNS TABLE (
+    MABN VARCHAR(6),
+    HOTEN VARCHAR(30),
+    GIOITINH BOOLEAN,
+    NGAYSINH DATE,
+    DIACHI VARCHAR(4),
+    SDT VARCHAR(10),
+    QUOCTICH VARCHAR(30),
+    TINHTRANG VARCHAR(50),
+    TT_GIAMHO VARCHAR(50),
+    MAKHU VARCHAR(4),
+    TGCACHLY INT,
+    TGBDCACHLY DATE,
+    TGKTCACHLY DATE
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT *
+	FROM BENHNHAN
+	WHERE BENHNHAN.TINHTRANG = p_tinhtrang;
+END;
+$$ LANGUAGE plpgsql;
+
+--2.Truy xuất danh sách thông tin bệnh nhân theo mã bệnh nhân
+CREATE OR REPLACE FUNCTION get_benhnhan_by_id(p_mabn VARCHAR(6))
+RETURNS TABLE (
+    MABN VARCHAR(6),
+    HOTEN VARCHAR(30),
+    GIOITINH BOOLEAN,
+    NGAYSINH DATE,
+    DIACHI VARCHAR(4),
+    SDT VARCHAR(10),
+    QUOCTICH VARCHAR(30),
+    TINHTRANG VARCHAR(50),
+    TT_GIAMHO VARCHAR(50),
+    MAKHU VARCHAR(4),
+    TGCACHLY INT,
+    TGBDCACHLY DATE,
+    TGKTCACHLY DATE
+    
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT *
+	FROM BENHNHAN
+	WHERE BENHNHAN.MABN = p_mabn;
+END;
+$$ LANGUAGE plpgsql;
+
+--3.Lấy danh sách cán bộ nhân viên theo đơn vị công tác
+CREATE OR REPLACE FUNCTION get_employees_by_unit(p_donvict VARCHAR(4))
+RETURNS TABLE (
+    MACB VARCHAR(6),
+    HOTEN VARCHAR(30),
+    GIOITINH BOOLEAN,
+    SDT VARCHAR(10),
+    DONVICT VARCHAR(50),
+    NOIHD VARCHAR(4),
+    MACV VARCHAR(3)
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT *
+	FROM CANBONV
+	WHERE CANBONV.DONVICT = p_DONVICT;
+END;
+$$ LANGUAGE plpgsql;
+
+
+--4.Truy xuất tình nguyện viên theo nơi hoạt động
+CREATE OR REPLACE FUNCTION get_tnv_by_working_place(working_place_name VARCHAR(4))
+RETURNS TABLE (
+    MATNV INT,
+    HOTEN VARCHAR(30),
+    SDT VARCHAR(10),
+    NOIHD VARCHAR(4)
+) AS $$
+BEGIN
+    RETURN QUERY 
+    SELECT *
+    FROM TNV
+	WHERE TNV.NOIHD = working_place_name;
+END;
+$$ LANGUAGE plpgsql;
+
+--5.Truy xuất danh sách bác sĩ theo chuyên khoa
+CREATE OR REPLACE FUNCTION get_bacsi_by_chuyenkhoa(p_chuyenkhoa VARCHAR(3))
+RETURNS TABLE (
+    MABS VARCHAR(6),
+    HOTEN VARCHAR(30),
+    GIOITINH BOOLEAN,
+    SDT VARCHAR(10),
+    DONVICT VARCHAR(4),
+    NOIHD VARCHAR(4),
+    CHUYENKHOA VARCHAR(3),
+    MACV VARCHAR(3)
+)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT *
+    FROM BACSI
+    WHERE BACSI.CHUYENKHOA = p_chuyenkhoa;
+END;
+$$ LANGUAGE plpgsql;
+
+--6.Truy xuất danh sách cơ sở y tế theo khu vực
+CREATE OR REPLACE FUNCTION get_csyt_by_region(region_id VARCHAR(4))
+RETURNS TABLE (
+    MACS VARCHAR(4),
+    TENBP VARCHAR(50),
+    DIACHI VARCHAR(4),
+    SDT VARCHAR(10)
+) AS $$
+BEGIN
+    RETURN QUERY 
+    SELECT *
+    FROM CSYT
+    WHERE CSYT.DIACHI = region_id;
+END;
+$$ LANGUAGE plpgsql;
+
+--7. Thống kê số lượng bệnh nhân của từng tình trạng bệnh
+CREATE OR REPLACE FUNCTION get_statistics_on_conditions()
+RETURNS TABLE (
+    TINHTRANG VARCHAR(50),
+    SL BIGINT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT BENHNHAN.TINHTRANG, COUNT(*) AS SL
+    FROM BENHNHAN
+    GROUP BY BENHNHAN.TINHTRANG;
+END;
+$$ LANGUAGE plpgsql;
+
+--8. Thống kê số lượng bệnh nhân của từng tỉnh
+CREATE OR REPLACE FUNCTION get_patients_statistics_on_provinces()
+RETURNS TABLE (
+    TENTINH VARCHAR(50),
+    SL BIGINT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT KHUVUC.TENTINH, COUNT(*) AS SL
+    FROM BENHNHAN 
+    JOIN KHUCACHLY ON KHUCACHLY.MAKHU = BENHNHAN.MAKHU
+    JOIN KHUVUC ON KHUCACHLY.DIACHI = KHUVUC.MAKV
+    GROUP BY KHUVUC.TENTINH;
+END;
+$$ LANGUAGE plpgsql;
+
+--9. Truy xuất danh sách bệnh nhân tuổi vị thành niên (dưới 18)
+CREATE OR REPLACE FUNCTION get_adolescent_patients()
+RETURNS TABLE (
+    MABN VARCHAR(6),
+    HOTEN VARCHAR(30),
+    GIOITINH BOOLEAN,
+    NGAYSINH DATE,
+    DIACHI VARCHAR(4),
+    SDT VARCHAR(10),
+    QUOCTICH VARCHAR(30),
+    TINHTRANG VARCHAR(50),
+    TT_GIAMHO VARCHAR(50),
+    MAKHU VARCHAR(4),
+    TGCACHLY INT,
+    TGBDCACHLY DATE,
+    TGKTCACHLY DATE,
+	TUOI INT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT *, CAST(DATE_PART('YEAR', AGE(CURRENT_DATE, BENHNHAN.NGAYSINH)) AS INT) AS TUOI
+	FROM BENHNHAN
+	WHERE CAST(DATE_PART('YEAR', AGE(CURRENT_DATE, BENHNHAN.NGAYSINH)) AS INT) < 18;
+END;
+$$ LANGUAGE plpgsql;
+
+--10. Truy xuất danh sách bệnh nhân tuổi trung niên (40 - 65)
+CREATE OR REPLACE FUNCTION get_middle_age_patients()
+RETURNS TABLE (
+    MABN VARCHAR(6),
+    HOTEN VARCHAR(30),
+    GIOITINH BOOLEAN,
+    NGAYSINH DATE,
+    DIACHI VARCHAR(4),
+    SDT VARCHAR(10),
+    QUOCTICH VARCHAR(30),
+    TINHTRANG VARCHAR(50),
+    TT_GIAMHO VARCHAR(50),
+    MAKHU VARCHAR(4),
+    TGCACHLY INT,
+    TGBDCACHLY DATE,
+    TGKTCACHLY DATE,
+	TUOI INT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT *, CAST(DATE_PART('YEAR', AGE(CURRENT_DATE, BENHNHAN.NGAYSINH)) AS INT) AS TUOI
+	FROM BENHNHAN
+	WHERE CAST(DATE_PART('YEAR', AGE(CURRENT_DATE, BENHNHAN.NGAYSINH)) AS INT) BETWEEN 45 AND 65;
+END;
+$$ LANGUAGE plpgsql;
+
+--11. Truy xuất danh sách bệnh nhân tuổi lão niên. (trên 65)
+CREATE OR REPLACE FUNCTION get_elder_patients()
+RETURNS TABLE (
+    MABN VARCHAR(6),
+    HOTEN VARCHAR(30),
+    GIOITINH BOOLEAN,
+    NGAYSINH DATE,
+    DIACHI VARCHAR(4),
+    SDT VARCHAR(10),
+    QUOCTICH VARCHAR(30),
+    TINHTRANG VARCHAR(50),
+    TT_GIAMHO VARCHAR(50),
+    MAKHU VARCHAR(4),
+    TGCACHLY INT,
+    TGBDCACHLY DATE,
+    TGKTCACHLY DATE,
+	TUOI INT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT *, CAST(DATE_PART('YEAR', AGE(CURRENT_DATE, BENHNHAN.NGAYSINH)) AS INT) AS TUOI
+	FROM BENHNHAN
+	WHERE CAST(DATE_PART('YEAR', AGE(CURRENT_DATE, BENHNHAN.NGAYSINH)) AS INT) > 65;
+END;
+$$ LANGUAGE plpgsql;
+
+--12. Thống kê số lượng bệnh nhân theo giới tính. NOTE: GIOITINH phải là TEXT nhưng không được là VARCHAR(3)
+CREATE OR REPLACE FUNCTION get_patients_statistics_on_gender()
+RETURNS TABLE (
+    GIOITINH TEXT,
+    SL BIGINT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        CASE 
+            WHEN BENHNHAN.GIOITINH THEN 'Nam'
+            ELSE 'Nữ'
+        END AS GIOITINH,
+        COUNT(*) AS SL
+    FROM BENHNHAN
+    GROUP BY BENHNHAN.GIOITINH;
+END;
+$$ LANGUAGE plpgsql;
